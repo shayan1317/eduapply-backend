@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: eduapply-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_DB: EDUAPPLY
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: eduapply-backend
+    restart: always
+    environment:
+      - DB_HOST=db
+      - DB_USER=postgres
+      - DB_PASSWORD=123456
+      - DB_NAME=EDUAPPLY
+      - DB_URI=postgres://postgres:123456@db:5432/EDUAPPLY
+      - PORT=3000
+    ports:
+      - "8000:3000"
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:

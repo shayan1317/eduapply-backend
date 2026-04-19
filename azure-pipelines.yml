@@ -1,0 +1,76 @@
+# Docker
+# Build and push an image to Azure Container Registry
+# https://docs.microsoft.com/azure/devops/pipelines/languages/docker
+
+trigger:
+  - epic/staging
+
+resources:
+  - repo: self
+
+variables:
+  # Container registry service connection established during pipeline creation
+  awsCredentials: 'Doerz Dev'
+  awsRegion: 'us-east-2'
+  containerRegistery: '727107634298.dkr.ecr.us-east-2.amazonaws.com'
+  repositoryName: 'staging/eduapply'
+  dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
+  tag: 'latest'
+  containerImage: $(containerRegistery)/$(repositoryName):$(tag)
+  containerName: 'eduapply'
+  targetServer: api.ea.doerz.tech
+  hostUsername: ec2-user
+  # admin and student base url should set the production url
+  adminBaseUrl: 'https://eduapply-admin.doerz.dev'
+  studentWebportalBaseUrl: 'https://eduapply-student.doerz.dev'
+  agentWebportalBaseUrl: 'https://eduapply-agent.doerz.dev'
+
+  # Agent VM image name
+  vmImageName: 'ubuntu-latest'
+
+stages:
+  - stage: Build
+    displayName: Build and push stage
+    jobs:
+      - job: Build
+        displayName: Build
+        pool:
+          vmImage: $(vmImageName)
+        steps:
+          - task: Docker@2
+            inputs:
+              command: 'build'
+              repository: $(repositoryName)
+              Dockerfile: '**/Dockerfile'
+              tags: |
+                $(tag)
+
+          - task: ECRPushImage@1
+            inputs:
+              awsCredentials: $(awsCredentials)
+              regionName: 'us-east-2'
+              imageSource: 'imagename'
+              sourceImageName: '$(repositoryName)'
+              repositoryName: $(repositoryName)
+
+  - stage: Deploy
+    displayName: Deploy Stage
+    jobs:
+      - deployment: Deploy
+        displayName: Deploy Job
+        pool:
+          vmImage: $(vmImageName)
+        environment: 'Staging'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: SSH@0
+                  inputs:
+                    sshEndpoint: 'Staging ssh'
+                    runOptions: 'commands'
+                    commands: |
+                      docker pull $(containerImage)
+                      docker stop $(containerName) || true && docker rm $(containerName) || true
+                      docker run -d --restart=always --memory=100m --cpus=0.3 -e NODE_ENV=development -e PORT=3019 -e DB_NAME=eduapply -e AWS_SECRETS_NAME=dev -e S3_BUCKET=doerz-fitty -e CLOUDFRONT_DOMAIN=https://d2vkhjsuk6abaq.cloudfront.net/ -e SMTP_FROM=noreply@doerz.dev -e AWS_REGION=us-east-2 -e ADMIN_BASE_URL=${adminBaseUrl} -e STUDENT_WEB_PORTAL_BASE_URL=${studentWebportalBaseUrl} -e AGENT_WEB_PORTAL_BASE_URL=$(agentWebportalBaseUrl) -p=3019:3019 --name=$(containerName) $(containerImage)
+                    readyTimeout: '20000'

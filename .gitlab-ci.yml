@@ -1,0 +1,42 @@
+# You can override the included template(s) by including variable overrides
+# SAST customization: https://docs.gitlab.com/ee/user/application_security/sast/#customizing-the-sast-settings
+# Secret Detection customization: https://docs.gitlab.com/ee/user/application_security/secret_detection/#customizing-settings
+# Dependency Scanning customization: https://docs.gitlab.com/ee/user/application_security/dependency_scanning/#customizing-the-dependency-scanning-settings
+# Container Scanning customization: https://docs.gitlab.com/ee/user/application_security/container_scanning/#customizing-the-container-scanning-settings
+# Note that environment variables can be set in several places
+# See https://docs.gitlab.com/ee/ci/variables/#cicd-variable-precedence
+
+image: keymetrics/pm2:16-alpine
+
+stages:
+  - test
+  - deploy
+
+sast:
+  stage: test
+include:
+  - template: Security/SAST.gitlab-ci.yml
+
+deploy_dev:
+  stage: deploy
+  variables:
+    HOST: "dev.doerz.tech"
+    HOST_USERNAME: "ec2-user"
+  environment:
+    name: staging
+    url: https://api.ea.doerz.tech/
+  script:
+    - echo "====== Starting Dev Deployment ======"
+    - apk update && apk upgrade
+    - apk add gcompat git openssh bash curl
+    # Add target server`s secret key
+    - echo "====== Configuring ssh connection ======"
+    - mkdir ~/.ssh
+    - curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash
+    - chmod 700 .secure_files/ && chmod 400 .secure_files/aws-dev.pem
+    - echo "Test ssh connection"
+    - ssh -o StrictHostKeyChecking=no -T -i .secure_files/aws-dev.pem  "$HOST_USERNAME@$HOST"
+    # Delploy
+    - echo "Deploying ..."
+    - pm2 deploy ecosystem.config.js dev setup 2>&1 || true
+    - pm2 deploy dev
