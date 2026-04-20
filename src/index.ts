@@ -1,41 +1,11 @@
-import {juggler} from '@loopback/repository';
 import {ApplicationConfig, EduApplyApplication} from './application';
 
 export * from './application';
 
-const DB_NAME = process.env.DB_NAME;
-
-async function createDatasource(): Promise<juggler.DataSource> {
-  try {
-    const dsName = 'postgres';
-    const dsConfig = {
-      name: dsName,
-      password: process.env.DB_PASSWORD,
-      user: process.env.DB_USER,
-      database: process.env.DB_NAME,
-      port: +(process.env.DB_PORT ?? 5432),
-      host: process.env.DB_HOST,
-      connector: require('loopback-connector-postgresql'),
-      url: process.env.DB_URI,
-    };
-    const prodDs = new juggler.DataSource(dsConfig);
-    return prodDs;
-  } catch (error) {
-    throw error;
-  }
-}
-
 export async function main(options: ApplicationConfig = {}) {
   const app = new EduApplyApplication(options);
   await app.boot();
-  if (
-    process.env.NODE_ENV === 'production' ||
-    process.env.NODE_ENV === 'development'
-  ) {
-    console.log('in if');
-    const prodDatasource = await createDatasource();
-    app.dataSource(prodDatasource);
-  }
+
   await app.migrateSchema({existingSchema: 'alter'});
   await app.start();
 
