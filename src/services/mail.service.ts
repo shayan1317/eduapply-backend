@@ -7,10 +7,7 @@ import {
   SignUpCodeEmailTemplate,
   SignUpPasswordEmailTemplate,
 } from '../templates';
-import {AwsService} from './aws.service';
 const nodemailer = require('nodemailer');
-
-const AWS_SECRETS_NAME = process.env.AWS_SECRETS_NAME ?? 'dev';
 const SMTP_FROM = process.env.SMTP_FROM ?? 'noreply@doerz.dev';
 const PROJECT_NAME = process.env.PROJECT_NAME ?? 'EduApply';
 
@@ -21,22 +18,18 @@ export class SmtpMailService {
 
   private transporter: any;
 
-  constructor(
-    @service(AwsService)
-    private awsService: AwsService,
-  ) {
+  constructor() {
     this.initializeSmtpTransporter();
   }
 
   async initializeSmtpTransporter() {
     try {
-      const secrets = await this.awsService.getSecrets(AWS_SECRETS_NAME);
       this.transporter = nodemailer.createTransport({
-        host: secrets.SMTP_HOST,
-        port: secrets.SMTP_PORT,
+        host: process.env.SMTP_HOST,
+        port: +(process.env.SMTP_PORT ?? 587),
         auth: {
-          user: secrets.SMTP_USERNAME,
-          pass: secrets.SMTP_PASSWORD,
+          user: process.env.SMTP_USERNAME,
+          pass: process.env.SMTP_PASSWORD,
         },
       });
     } catch (error) {

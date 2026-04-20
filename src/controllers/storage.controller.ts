@@ -8,27 +8,14 @@ import {
   requestBody,
 } from '@loopback/rest';
 import multer from 'multer';
-import stream from 'stream';
-import {AwsService} from '../services';
-
-const {Duplex} = stream;
-
-function bufferToStream(buffer: Buffer) {
-  const duplexStream = new Duplex();
-  duplexStream.push(buffer);
-  duplexStream.push(null);
-  return duplexStream;
-}
+import path from 'path';
+import fs from 'fs';
 
 export class StorageController {
   @inject(LoggingBindings.WINSTON_LOGGER)
   private logger: WinstonLogger;
 
-  s3: AwsService;
-
-  constructor() {
-    this.s3 = new AwsService();
-  }
+  constructor() {}
 
   @post('/upload', {
     responses: {
@@ -68,17 +55,28 @@ export class StorageController {
           reject(err);
         } else {
           let res = new Array();
+          const uploadDir = path.join(process.cwd(), 'public/uploads');
+          
+          if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, {recursive: true});
+          }
+
           for (const file of (request as any).files) {
             const now = new Date();
             const name_parts = file.originalname.split('.');
             const name = name_parts[0];
             const extension = name_parts.length > 1 ? name_parts[name_parts.length - 1] : 'undefined';
-            let key = name + '_' + now.getTime() + '.' + extension;
-            const body = bufferToStream(file.buffer);
+            let filename = `${name}_${now.getTime()}.${extension}`;
+            
             try {
-              let stored: any = await this.s3.uploadToS3(key, body);
-              res.push(stored);
+              const filePath = path.join(uploadDir, filename);
+              fs.writeFileSync(filePath, file.buffer);
+              
+              const baseUrl = process.env.BASE_URL ?? 'http://localhost:4000';
+              const fileUrl = `${baseUrl}/uploads/${filename}`;
+              res.push(fileUrl);
             } catch (err) {
+              this.logger.error('FileSaveError', err);
               reject(err);
             }
           }

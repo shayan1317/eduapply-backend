@@ -1,28 +1,22 @@
 import {juggler} from '@loopback/repository';
 import {ApplicationConfig, EduApplyApplication} from './application';
-import {AwsService} from './services';
-import {Secrets} from './types';
 
 export * from './application';
 
-const AWS_SECRETS_NAME = process.env.AWS_SECRETS_NAME ?? '';
 const DB_NAME = process.env.DB_NAME;
 
 async function createDatasource(): Promise<juggler.DataSource> {
   try {
-    const awsService = new AwsService();
-    const secrets: Secrets = await awsService.getSecrets(AWS_SECRETS_NAME);
     const dsName = 'postgres';
     const dsConfig = {
       name: dsName,
-      password: secrets.DB_PASSWORD,
-      user: secrets.DB_USERNAME,
-      database: DB_NAME,
-      port: secrets.DB_PORT,
-      host: secrets.DB_HOST,
+      password: process.env.DB_PASSWORD,
+      user: process.env.DB_USER,
+      database: process.env.DB_NAME,
+      port: +(process.env.DB_PORT ?? 5432),
+      host: process.env.DB_HOST,
       connector: require('loopback-connector-postgresql'),
-      url: `postgres://${secrets.DB_USERNAME}:${secrets.DB_PASSWORD}@${secrets.DB_HOST}:${secrets.DB_PORT}/${DB_NAME}`,
-      uri: `postgres://${secrets.DB_USERNAME}:${secrets.DB_PASSWORD}@${secrets.DB_HOST}:${secrets.DB_PORT}/${DB_NAME}`,
+      url: process.env.DB_URI,
     };
     const prodDs = new juggler.DataSource(dsConfig);
     return prodDs;
