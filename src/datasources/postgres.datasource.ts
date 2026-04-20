@@ -15,6 +15,7 @@ const config = {
   port: process.env.DB_PORT ?? 5432,
   user: process.env.DB_USER ?? 'postgres',
   database: process.env.DB_NAME ?? 'EDUAPPLY',
+  ssl: true,
 };
 
 @lifeCycleObserver('datasource')

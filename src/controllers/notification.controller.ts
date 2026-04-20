@@ -11,7 +11,7 @@ import {
 } from '../repositories';
 import {NotificationOutput, Success} from '../schema';
 
-import {messaging} from '../firebaseInit';
+// import {messaging} from '../firebaseInit';
 import {User} from '../models';
 import {NotificationInput} from '../schema/inputs';
 
@@ -73,18 +73,18 @@ export class NotificationController {
         description,
         userId: user?.id,
       });
-      try {
-        const message = {
-          notification: {
-            title,
-            body: description,
-          },
-          token: registrationToken,
-        };
-        await messaging.send(message);
-      } catch (err) {
-        throw err;
-      }
+// try {
+//   const message = {
+//     notification: {
+//       title,
+//       body: description,
+//     },
+//     token: registrationToken,
+//   };
+//   await messaging.send(message);
+// } catch (err) {
+//   throw err;
+// }
 
       return {success: true};
     } catch (err) {

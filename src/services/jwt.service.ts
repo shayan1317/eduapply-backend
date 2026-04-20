@@ -8,10 +8,9 @@ import {JwtTokenForOtp} from '../schema';
 const jwt = require('jsonwebtoken');
 
 //move to env
-const TOKEN_SECRET_VALUE = 'vnJ7icKJ90ca-cpX891*72kxnOpqic&21.ckl*91khfw';
-const TOKEN_SECRET_VALUE_SETUP_PASSWORD =
-  'fwK9ocKJca90-cpX891*69kxnOpqic&21.jyl*32khvn';
-const TOKEN_EXPIRES_IN_VALUE = 604800; // 1 week
+const TOKEN_SECRET_VALUE = process.env.TOKEN_SECRET_VALUE;
+const TOKEN_SECRET_VALUE_SETUP_PASSWORD = process.env.TOKEN_SECRET_VALUE_SETUP_PASSWORD;
+const TOKEN_EXPIRES_IN_VALUE = Number(process.env.TOKEN_EXPIRES_IN_VALUE) || 604800; // 1 week
 @injectable({scope: BindingScope.TRANSIENT})
 export class JwtService {
   @inject(LoggingBindings.WINSTON_LOGGER)
